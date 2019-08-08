@@ -1,6 +1,7 @@
 package com.example.travelmantics;
 
 import android.content.Intent;
+import android.content.res.Resources;
 import android.icu.text.LocaleDisplayNames;
 import android.net.Uri;
 import android.support.annotation.NonNull;
@@ -13,6 +14,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
@@ -24,11 +26,13 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.squareup.picasso.Picasso;
 
 public class DealActivity extends AppCompatActivity {
     EditText txtTitle, txtPrice, txtDescription;
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mDatabaseReference;
+    ImageView imageView;
     private TravelDeal deal;
     private static final int PICTURE_RESULT = 42;
     private StorageReference ref;
@@ -43,6 +47,7 @@ public class DealActivity extends AppCompatActivity {
         txtTitle = findViewById(R.id.txt_title);
         txtPrice = findViewById(R.id.txt_price);
         txtDescription = findViewById(R.id.txt_description);
+        imageView = findViewById(R.id.image);
         Intent intent = getIntent();
         TravelDeal deal = (TravelDeal) intent.getSerializableExtra("deal");
         if (deal == null) {
@@ -52,6 +57,7 @@ public class DealActivity extends AppCompatActivity {
         txtTitle.setText(deal.getTitle());
         txtPrice.setText(deal.getPrice());
         txtDescription.setText(deal.getDescription());
+        showImage(deal.getImageUrl());
         Button btnImage = findViewById(R.id.btnImage);
         btnImage.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -104,12 +110,8 @@ public class DealActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == PICTURE_RESULT && requestCode == RESULT_OK) {
+        if (requestCode == PICTURE_RESULT && resultCode == RESULT_OK) {
             Uri imageUri = data.getData();
-
-            Log.d("fissha", "inside if method call");
-
             ref = FirebaseUtil.mStorageRef.child(imageUri.getLastPathSegment());
 
             ref.putFile(imageUri).continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
@@ -126,10 +128,9 @@ public class DealActivity extends AppCompatActivity {
                 public void onComplete(@NonNull Task<Uri> task) {
                     if (task.isSuccessful()) {
                         Uri downloadUri = task.getResult();
-
-                        Log.d("fissha", "upload succesful");
-
+//                        String pictureName = task.getResult().getPath();
                         deal.setImageUrl(downloadUri.toString());
+                        showImage(downloadUri.toString());
                     }
                 }
             });
@@ -174,5 +175,17 @@ public class DealActivity extends AppCompatActivity {
         txtTitle.setEnabled(isEnable);
         txtPrice.setEnabled(isEnable);
         txtDescription.setEnabled(isEnable);
+    }
+
+    private void showImage(String uri) {
+        if (uri != null && uri.isEmpty() == false) {
+
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            Picasso.with(this)
+                    .load(uri)
+                    .resize(width, width * 2 / 3)
+                    .centerCrop().into(imageView);
+        }
+
     }
 }
